@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Tag Game - Dynamic 2/3 Players & Double Dash</title>
+  <title>Tag Game - Red & Blue 2P, Red + Blue + Green 3P</title>
   <style>
     body {
       margin: 0;
@@ -107,8 +107,7 @@ class Player {
     if (this.stunned || this.abilityCooldown > 0) return;
     switch (this.abilityName) {
       case 'dash':
-        // Double dash distance from 60 to 120 for red player
-        this.vx = (this.vx >= 0 ? 1 : -1) * 120;
+        this.vx = (this.vx >= 0 ? 1 : -1) * 240;
         this.abilityCooldown = 120;
         break;
       case 'shield':
@@ -213,11 +212,11 @@ window.addEventListener('keyup', e => keysDown[e.key] = false);
 function createPlayers() {
   players = [
     new Player('red', 100, { left: 'a', right: 'd', jump: 'w', ability: 's' }, 'dash'),
-    new Player('green', 300, { left: 'j', right: 'l', jump: 'i', ability: 'k' }, 'shield'),
+    new Player('blue', 300, { left: 'ArrowLeft', right: 'ArrowRight', jump: 'ArrowUp', ability: 'ArrowDown' }, 'speed'),
   ];
   if (!TWO_PLAYER_MODE) {
     players.push(
-      new Player('blue', 500, { left: 'ArrowLeft', right: 'ArrowRight', jump: 'ArrowUp', ability: 'ArrowDown' }, 'speed')
+      new Player('green', 500, { left: 'j', right: 'l', jump: 'i', ability: 'k' }, 'shield')
     );
   }
   players[0].isIt = true;
@@ -252,53 +251,8 @@ function checkTag() {
     ) {
       p.isIt = true;
       itPlayer.isIt = false;
-      p.tagCooldown = 180;
-    }
-  });
-}
+      p.tagCooldown =
 
-function draw() {
-  ctx.save();
-  ctx.scale(SCALE, SCALE);
-
-  ctx.clearRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-  platforms.forEach(p => p.draw(ctx));
-  players.forEach(p => p.draw(ctx));
-
-  ctx.restore();
-
-  ctx.fillStyle = 'white';
-  ctx.font = '20px monospace';
-  const it = players.find(p => p.isIt);
-  ctx.fillText(`Player ${players.indexOf(it) + 1} is IT!`, 20, 30);
-}
-
-function update() {
-  handleInput();
-  players.forEach(p => p.update(platforms));
-  checkTag();
-}
-
-function loop() {
-  update();
-  draw();
-  requestAnimationFrame(loop);
-}
-
-// Button for toggling 2 or 3 players
-const toggleBtn = document.getElementById('togglePlayersBtn');
-toggleBtn.addEventListener('click', () => {
-  TWO_PLAYER_MODE = !TWO_PLAYER_MODE;
-  createPlayers();
-  toggleBtn.textContent = TWO_PLAYER_MODE ? 'Switch to 3 Players' : 'Switch to 2 Players';
-});
-
-createPlayers();
-loop();
-</script>
-
-</body>
-</html>
 
 
 loop();
