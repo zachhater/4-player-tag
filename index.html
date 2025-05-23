@@ -1,41 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Tag Game - Red & Blue 2P, Red + Blue + Green 3P</title>
-  <style>
-    body {
-      margin: 0;
-      background: #222;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      color: white;
-      font-family: monospace;
-      user-select: none;
-    }
-    canvas {
-      background: #87ceeb;
-      display: block;
-      margin-bottom: 10px;
-      border: 2px solid #555;
-    }
-    button {
-      padding: 8px 16px;
-      font-size: 16px;
-      cursor: pointer;
-      border-radius: 6px;
-      border: none;
-      background: #444;
-      color: white;
-      transition: background 0.3s ease;
-    }
-    button:hover {
-      background: #666;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tag Game - Red & Blue (2P), Red + Blue + Green (3P)</title>
+<style>
+  body {
+    margin: 0;
+    background: #222;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    color: white;
+    font-family: monospace;
+    user-select: none;
+  }
+  canvas {
+    background: #87ceeb;
+    display: block;
+    margin-bottom: 10px;
+    border: 2px solid #555;
+  }
+  button {
+    padding: 8px 16px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 6px;
+    border: none;
+    background: #444;
+    color: white;
+    transition: background 0.3s ease;
+  }
+  button:hover {
+    background: #666;
+  }
+</style>
 </head>
 <body>
 
@@ -68,9 +69,12 @@ class Platform {
 class Player {
   constructor(color, x, keys, abilityName) {
     this.color = color;
-    this.x = x; this.y = groundLevel - 60;
-    this.width = 40; this.height = 60;
-    this.vx = 0; this.vy = 0;
+    this.x = x; 
+    this.y = groundLevel - 60;
+    this.width = 40; 
+    this.height = 60;
+    this.vx = 0; 
+    this.vy = 0;
     this.speed = 4;
     this.jumpPower = 15;
     this.canDoubleJump = true;
@@ -85,6 +89,9 @@ class Player {
     this.abilityDuration = 0;
     this.shield = false;
     this.speedBoost = false;
+    // For input handling to avoid repeated jump/ability triggers
+    this._jumpPressedLastFrame = false;
+    this._abilityPressedLastFrame = false;
   }
 
   moveLeft() { if (!this.stunned) this.vx = -this.speed * (this.speedBoost ? 1.5 : 1); }
@@ -107,7 +114,8 @@ class Player {
     if (this.stunned || this.abilityCooldown > 0) return;
     switch (this.abilityName) {
       case 'dash':
-        this.vx = (this.vx >= 0 ? 1 : -1) * 240;
+        // Double dash distance for Red (velocity 120)
+        this.vx = (this.vx >= 0 ? 1 : -1) * 120;
         this.abilityCooldown = 120;
         break;
       case 'shield':
@@ -134,10 +142,12 @@ class Player {
 
     let onAnyPlatform = false;
     for (let plat of platforms) {
-      if (this.y + this.height <= plat.y &&
-          this.y + this.height + this.vy >= plat.y &&
-          this.x + this.width > plat.x &&
-          this.x < plat.x + plat.width) {
+      if (
+        this.y + this.height <= plat.y &&
+        this.y + this.height + this.vy >= plat.y &&
+        this.x + this.width > plat.x &&
+        this.x < plat.x + plat.width
+      ) {
         this.y = plat.y - this.height;
         this.vy = 0;
         this.isOnGround = true;
@@ -249,14 +259,9 @@ function checkTag() {
         p.y + p.height < itPlayer.y ||
         p.y > itPlayer.y + itPlayer.height)
     ) {
+      // Tagging: switch "it" status
       p.isIt = true;
       itPlayer.isIt = false;
-      p.tagCooldown =
 
-
-
-loop();
-</script>
-</body>
-</html>
+      // Reset
 
