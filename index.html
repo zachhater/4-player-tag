@@ -2,21 +2,25 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>3 Player Tag Game</title>
+  <title>3 Player Tag Game - Zoomed Out, Tag Cooldown</title>
   <style>
-    body { margin: 0; background: #222; }
-    canvas { background: #87ceeb; display: block; margin: auto; }
+    body { margin: 0; background: #222; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    canvas { background: #87ceeb; }
   </style>
 </head>
 <body>
-<canvas id="game" width="1600" height="900"></canvas>
+<canvas id="game" width="800" height="450"></canvas>
 
 <script>
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
+const SCALE = 0.5; // zoom out factor (50%)
+const WORLD_WIDTH = 1600;
+const WORLD_HEIGHT = 900;
+
 const gravity = 0.7;
-const groundLevel = canvas.height - 50;
+const groundLevel = WORLD_HEIGHT - 50;
 
 class Platform {
   constructor(x, y, width, height) {
@@ -41,7 +45,8 @@ class Player {
     this.canDoubleJump = true;
     this.isOnGround = false;
     this.isIt = false;
-    this.stunned = 0;
+    this.stunned = 0; // no longer used for freeze after tag but left for compatibility
+    this.tagCooldown = 0; // NEW cooldown for tagging after being tagged
     this.keys = keys;
     this.abilityName = abilityName;
     this.abilityCooldown = 0;
@@ -71,7 +76,7 @@ class Player {
     if (this.stunned || this.abilityCooldown > 0) return;
     switch (this.abilityName) {
       case 'dash':
-        this.vx = (this.vx >= 0 ? 1 : -1) * 60; // 💥 Double dash
+        this.vx = (this.vx >= 0 ? 1 : -1) * 60; // Double dash
         this.abilityCooldown = 120;
         break;
       case 'shield':
@@ -91,6 +96,7 @@ class Player {
 
   update(platforms) {
     if (this.stunned > 0) this.stunned--;
+    if (this.tagCooldown > 0) this.tagCooldown--;
 
     this.x += this.vx;
     this.y += this.vy;
@@ -115,9 +121,9 @@ class Player {
     }
 
     if (this.x < 0) this.x = 0;
-    if (this.x + this.width > canvas.width) this.x = canvas.width - this.width;
-    if (this.y + this.height > canvas.height) {
-      this.y = canvas.height - this.height;
+    if (this.x + this.width > WORLD_WIDTH) this.x = WORLD_WIDTH - this.width;
+    if (this.y + this.height > WORLD_HEIGHT) {
+      this.y = WORLD_HEIGHT - this.height;
       this.vy = 0;
       this.isOnGround = true;
     }
@@ -163,7 +169,7 @@ const players = [
 players[0].isIt = true;
 
 const platforms = [
-  new Platform(0, canvas.height - 30, canvas.width, 30),
+  new Platform(0, WORLD_HEIGHT - 30, WORLD_WIDTH, 30),
   new Platform(200, 750, 300, 20),
   new Platform(600, 650, 250, 20),
   new Platform(1000, 550, 250, 20),
@@ -195,22 +201,31 @@ function handleInput() {
 function checkTag() {
   const itPlayer = players.find(p => p.isIt);
   players.forEach(p => {
-    if (p !== itPlayer && p.stunned === 0 && !p.shield &&
-        !(p.x + p.width < itPlayer.x ||
-          p.x > itPlayer.x + itPlayer.width ||
-          p.y + p.height < itPlayer.y ||
-          p.y > itPlayer.y + itPlayer.height)) {
+    if (
+      p !== itPlayer &&
+      !p.shield &&
+      itPlayer.tagCooldown === 0 &&
+      !(p.x + p.width < itPlayer.x ||
+        p.x > itPlayer.x + itPlayer.width ||
+        p.y + p.height < itPlayer.y ||
+        p.y > itPlayer.y + itPlayer.height)
+    ) {
       p.isIt = true;
-      p.stunned = 180; // ⏱ 3 seconds stun (60fps * 3)
       itPlayer.isIt = false;
+      p.tagCooldown = 180; // 3 seconds cooldown before new "It" can tag
     }
   });
 }
 
 function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.scale(SCALE, SCALE);
+
+  ctx.clearRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
   platforms.forEach(p => p.draw(ctx));
   players.forEach(p => p.draw(ctx));
+
+  ctx.restore();
 
   ctx.fillStyle = 'white';
   ctx.font = '20px monospace';
@@ -229,6 +244,11 @@ function loop() {
   draw();
   requestAnimationFrame(loop);
 }
+
+loop();
+</script>
+</body>
+</html>
 
 loop();
 </script>
