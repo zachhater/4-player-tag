@@ -1,272 +1,235 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>4 Player Tag Game with Double Jump & Abilities</title>
-<style>
-  body { margin:0; background: #222; }
-  canvas { background: #87ceeb; display: block; margin: auto; }
-  #info { color: white; font-family: monospace; text-align:center; }
-</style>
+  <meta charset="UTF-8" />
+  <title>4 Player Tag Game</title>
+  <style>
+    body { margin: 0; background: #222; }
+    canvas { background: #87ceeb; display: block; margin: auto; }
+  </style>
 </head>
 <body>
-
-<canvas id="game" width="800" height="450"></canvas>
-<div id="info">
-  <p>Controls:</p>
-  <ul style="list-style:none; padding:0; margin:0;">
-    <li><strong>Player 1 (Red):</strong> A,D = move, W = jump, S = ability (Dash)</li>
-    <li><strong>Player 2 (Green):</strong> J,L = move, I = jump, K = ability (Shield)</li>
-    <li><strong>Player 3 (Blue):</strong> ←,→ = move, ↑ = jump, ↓ = ability (Speed boost)</li>
-    <li><strong>Player 4 (Yellow):</strong> Num4, Num6 = move, Num8 = jump, Num5 = ability (Teleport)</li>
-  </ul>
-  <p>Tag the "It" player to become "It"!</p>
-</div>
+<canvas id="game" width="1200" height="700"></canvas>
 
 <script>
-(() => {
-  const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d');
-  const width = canvas.width;
-  const height = canvas.height;
-  const gravity = 0.7;
-  const groundLevel = height - 50;
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
 
-  class Player {
-    constructor(color, x, keys, abilityName) {
-      this.color = color;
-      this.width = 40;
-      this.height = 60;
-      this.x = x;
-      this.y = groundLevel - this.height;
-      this.vx = 0;
-      this.vy = 0;
-      this.speed = 4;
-      this.jumpPower = 15;
+const gravity = 0.7;
+const groundLevel = canvas.height - 50;
+
+class Platform {
+  constructor(x, y, width, height) {
+    this.x = x; this.y = y;
+    this.width = width;
+    this.height = height;
+  }
+  draw(ctx) {
+    ctx.fillStyle = '#654321';
+    ctx.fillRect(this.x, this.y, this.width, this.height);
+  }
+}
+
+class Player {
+  constructor(color, x, keys, abilityName) {
+    this.color = color;
+    this.x = x; this.y = groundLevel - 60;
+    this.width = 40; this.height = 60;
+    this.vx = 0; this.vy = 0;
+    this.speed = 4;
+    this.jumpPower = 15;
+    this.canDoubleJump = true;
+    this.isOnGround = false;
+    this.isIt = false;
+    this.keys = keys;
+    this.abilityName = abilityName;
+    this.abilityCooldown = 0;
+    this.abilityActive = false;
+    this.abilityDuration = 0;
+    this.shield = false;
+    this.speedBoost = false;
+  }
+
+  moveLeft() { this.vx = -this.speed * (this.speedBoost ? 1.5 : 1); }
+  moveRight() { this.vx = this.speed * (this.speedBoost ? 1.5 : 1); }
+  stopX() { this.vx = 0; }
+
+  jump() {
+    if (this.isOnGround) {
+      this.vy = -this.jumpPower;
       this.canDoubleJump = true;
-      this.isOnGround = true;
-      this.isIt = false;
-      this.keys = keys;
-      this.abilityName = abilityName;
-      this.abilityCooldown = 0;
-      this.abilityActive = false;
-      this.abilityDuration = 0;
-      this.shield = false;
-      this.speedBoost = false;
+      this.isOnGround = false;
+    } else if (this.canDoubleJump) {
+      this.vy = -this.jumpPower;
+      this.canDoubleJump = false;
     }
-    moveLeft() {
-      this.vx = -this.speed * (this.speedBoost ? 1.5 : 1);
-    }
-    moveRight() {
-      this.vx = this.speed * (this.speedBoost ? 1.5 : 1);
-    }
-    stopX() {
-      this.vx = 0;
-    }
-    jump() {
-      if(this.isOnGround) {
-        this.vy = -this.jumpPower;
-        this.isOnGround = false;
-        this.canDoubleJump = true;
-      } else if(this.canDoubleJump) {
-        this.vy = -this.jumpPower;
-        this.canDoubleJump = false;
-      }
-    }
-    useAbility() {
-      if(this.abilityCooldown > 0) return;
-      switch(this.abilityName) {
-        case 'dash':
-          this.vx = (this.vx >= 0 ? 1 : -1) * 15;
-          this.abilityCooldown = 120;
-          break;
-        case 'shield':
-          this.shield = true;
-          this.abilityActive = true;
-          this.abilityDuration = 180;
-          this.abilityCooldown = 300;
-          break;
-        case 'speed':
-          this.speedBoost = true;
-          this.abilityActive = true;
-          this.abilityDuration = 180;
-          this.abilityCooldown = 300;
-          break;
-        case 'teleport':
-          // teleport a random short distance left or right on ground
-          if(this.isOnGround){
-            const dist = (Math.random() < 0.5 ? -1 : 1) * 150;
-            this.x = Math.min(Math.max(0, this.x + dist), width - this.width);
-            this.abilityCooldown = 180;
-          }
-          break;
-      }
-    }
-    update() {
-      // Apply velocity
-      this.x += this.vx;
-      this.y += this.vy;
+  }
 
-      // Gravity
-      if(this.y + this.height < groundLevel) {
-        this.vy += gravity;
-        this.isOnGround = false;
-      } else {
-        this.y = groundLevel - this.height;
+  useAbility() {
+    if (this.abilityCooldown > 0) return;
+    switch (this.abilityName) {
+      case 'dash':
+        this.vx = (this.vx >= 0 ? 1 : -1) * 30; // Red gets BIG dash
+        this.abilityCooldown = 120;
+        break;
+      case 'shield':
+        this.shield = true;
+        this.abilityActive = true;
+        this.abilityDuration = 180;
+        this.abilityCooldown = 300;
+        break;
+      case 'speed':
+        this.speedBoost = true;
+        this.abilityActive = true;
+        this.abilityDuration = 180;
+        this.abilityCooldown = 300;
+        break;
+      case 'teleport':
+        if (this.isOnGround) {
+          const dist = (Math.random() < 0.5 ? -1 : 1) * 200;
+          this.x = Math.max(0, Math.min(this.x + dist, canvas.width - this.width));
+          this.abilityCooldown = 180;
+        }
+        break;
+    }
+  }
+
+  update(platforms) {
+    this.x += this.vx;
+    this.y += this.vy;
+
+    let onAnyPlatform = false;
+    for (let plat of platforms) {
+      if (this.y + this.height <= plat.y &&
+          this.y + this.height + this.vy >= plat.y &&
+          this.x + this.width > plat.x &&
+          this.x < plat.x + plat.width) {
+        this.y = plat.y - this.height;
         this.vy = 0;
         this.isOnGround = true;
         this.canDoubleJump = true;
-      }
-
-      // Boundaries
-      if(this.x < 0) this.x = 0;
-      if(this.x + this.width > width) this.x = width - this.width;
-
-      // Ability timers
-      if(this.abilityCooldown > 0) this.abilityCooldown--;
-      if(this.abilityActive) {
-        this.abilityDuration--;
-        if(this.abilityDuration <= 0) {
-          this.abilityActive = false;
-          if(this.shield) this.shield = false;
-          if(this.speedBoost) this.speedBoost = false;
-        }
-      }
-
-      // Friction for dash slowing down
-      if(this.abilityName === 'dash' && this.abilityCooldown > 100) {
-        this.vx *= 0.9;
-      }
-      else if(!this.abilityActive) {
-        // normal friction
-        this.vx *= 0.8;
-        if(Math.abs(this.vx) < 0.1) this.vx = 0;
+        onAnyPlatform = true;
       }
     }
-    draw(ctx) {
-      ctx.fillStyle = this.color;
-      ctx.fillRect(this.x, this.y, this.width, this.height);
-      if(this.isIt) {
-        ctx.strokeStyle = 'gold';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(this.x-3, this.y-3, this.width+6, this.height+6);
-      }
-      if(this.shield) {
-        ctx.strokeStyle = 'cyan';
-        ctx.lineWidth = 5;
-        ctx.beginPath();
-        ctx.arc(this.x + this.width/2, this.y + this.height/2, this.width, 0, Math.PI * 2);
-        ctx.stroke();
+
+    if (!onAnyPlatform) {
+      this.vy += gravity;
+      this.isOnGround = false;
+    }
+
+    if (this.x < 0) this.x = 0;
+    if (this.x + this.width > canvas.width) this.x = canvas.width - this.width;
+    if (this.y + this.height > canvas.height) {
+      this.y = canvas.height - this.height;
+      this.vy = 0;
+      this.isOnGround = true;
+    }
+
+    if (this.abilityCooldown > 0) this.abilityCooldown--;
+    if (this.abilityActive) {
+      this.abilityDuration--;
+      if (this.abilityDuration <= 0) {
+        this.abilityActive = false;
+        this.shield = false;
+        this.speedBoost = false;
       }
     }
+
+    this.vx *= 0.85;
+    if (Math.abs(this.vx) < 0.1) this.vx = 0;
   }
 
-  // Controls for each player:
-  // Player1: A/D/W/S
-  // Player2: J/L/I/K
-  // Player3: Left/Right/Up/Down
-  // Player4: Numpad 4/6/8/5
+  draw(ctx) {
+    ctx.fillStyle = this.color;
+    ctx.fillRect(this.x, this.y, this.width, this.height);
+    if (this.isIt) {
+      ctx.strokeStyle = 'gold';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(this.x - 3, this.y - 3, this.width + 6, this.height + 6);
+    }
+    if (this.shield) {
+      ctx.strokeStyle = 'cyan';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(this.x + this.width/2, this.y + this.height/2, this.width, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+}
 
-  const players = [
-    new Player('red', 50, {left:'a', right:'d', jump:'w', ability:'s'}, 'dash'),
-    new Player('green', 200, {left:'j', right:'l', jump:'i', ability:'k'}, 'shield'),
-    new Player('blue', 350, {left:'ArrowLeft', right:'ArrowRight', jump:'ArrowUp', ability:'ArrowDown'}, 'speed'),
-    new Player('yellow', 500, {left:'Numpad4', right:'Numpad6', jump:'Numpad8', ability:'Numpad5'}, 'teleport'),
-  ];
+const players = [
+  new Player('red', 100, { left: 'a', right: 'd', jump: 'w', ability: 's' }, 'dash'),
+  new Player('green', 300, { left: 'j', right: 'l', jump: 'i', ability: 'k' }, 'shield'),
+  new Player('blue', 500, { left: 'ArrowLeft', right: 'ArrowRight', jump: 'ArrowUp', ability: 'ArrowDown' }, 'speed'),
+  new Player('yellow', 700, { left: 'Numpad4', right: 'Numpad6', jump: 'Numpad8', ability: 'Numpad5' }, 'teleport')
+];
 
-  players[0].isIt = true; // Player 1 starts as "it"
+players[0].isIt = true;
 
-  const keysDown = {};
+const platforms = [
+  new Platform(0, canvas.height - 30, canvas.width, 30),
+  new Platform(200, 550, 200, 20),
+  new Platform(500, 400, 200, 20),
+  new Platform(100, 300, 150, 20),
+  new Platform(800, 250, 200, 20),
+];
 
-  window.addEventListener('keydown', e => {
-    keysDown[e.key] = true;
+const keysDown = {};
+window.addEventListener('keydown', e => keysDown[e.key] = true);
+window.addEventListener('keyup', e => keysDown[e.key] = false);
+
+function handleInput() {
+  players.forEach(p => {
+    if (keysDown[p.keys.left]) p.moveLeft();
+    else if (keysDown[p.keys.right]) p.moveRight();
+    else p.stopX();
+
+    if (keysDown[p.keys.jump] && !p._jumpPressedLastFrame) p.jump();
+    p._jumpPressedLastFrame = keysDown[p.keys.jump];
+
+    if (keysDown[p.keys.ability] && !p._abilityPressedLastFrame) p.useAbility();
+    p._abilityPressedLastFrame = keysDown[p.keys.ability];
   });
+}
 
-  window.addEventListener('keyup', e => {
-    keysDown[e.key] = false;
+function checkTag() {
+  const itPlayer = players.find(p => p.isIt);
+  players.forEach(p => {
+    if (p !== itPlayer && !p.shield &&
+        !(p.x + p.width < itPlayer.x ||
+          p.x > itPlayer.x + itPlayer.width ||
+          p.y + p.height < itPlayer.y ||
+          p.y > itPlayer.y + itPlayer.height)) {
+      p.isIt = true;
+      itPlayer.isIt = false;
+    }
   });
+}
 
-  function handleInput() {
-    players.forEach(p => {
-      let leftPressed = keysDown[p.keys.left];
-      let rightPressed = keysDown[p.keys.right];
-      let jumpPressed = keysDown[p.keys.jump];
-      let abilityPressed = keysDown[p.keys.ability];
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  platforms.forEach(p => p.draw(ctx));
+  players.forEach(p => p.draw(ctx));
 
-      if(leftPressed && !rightPressed) {
-        p.moveLeft();
-      } else if(rightPressed && !leftPressed) {
-        p.moveRight();
-      } else {
-        p.stopX();
-      }
+  ctx.fillStyle = 'white';
+  ctx.font = '20px monospace';
+  const it = players.find(p => p.isIt);
+  ctx.fillText(`Player ${players.indexOf(it) + 1} is IT!`, 20, 30);
+}
 
-      if(jumpPressed && !p._jumpPressedLastFrame) {
-        p.jump();
-      }
-      p._jumpPressedLastFrame = jumpPressed;
+function update() {
+  handleInput();
+  players.forEach(p => p.update(platforms));
+  checkTag();
+}
 
-      if(abilityPressed && !p._abilityPressedLastFrame) {
-        p.useAbility();
-      }
-      p._abilityPressedLastFrame = abilityPressed;
-    });
-  }
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
 
-  function checkTag() {
-    const itPlayer = players.find(p => p.isIt);
-    players.forEach(p => {
-      if(p !== itPlayer) {
-        if(collide(itPlayer, p)) {
-          if(!p.shield) {
-            itPlayer.isIt = false;
-            p.isIt = true;
-          }
-        }
-      }
-    });
-  }
-
-  function collide(p1, p2) {
-    return !(p1.x + p1.width < p2.x ||
-             p1.x > p2.x + p2.width ||
-             p1.y + p1.height < p2.y ||
-             p1.y > p2.y + p2.height);
-  }
-
-  function drawGround() {
-    ctx.fillStyle = '#654321';
-    ctx.fillRect(0, groundLevel, width, height - groundLevel);
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, width, height);
-    drawGround();
-    players.forEach(p => p.draw(ctx));
-
-    // Show who is "It"
-    ctx.fillStyle = 'white';
-    ctx.font = '20px monospace';
-    let itPlayer = players.find(p => p.isIt);
-    ctx.fillText(`Player ${players.indexOf(itPlayer)+1} is IT!`, 10, 30);
-  }
-
-  function update() {
-    handleInput();
-    players.forEach(p => p.update());
-    checkTag();
-  }
-
-  function gameLoop() {
-    update();
-    draw();
-    requestAnimationFrame(gameLoop);
-  }
-
-  gameLoop();
-})();
+loop();
 </script>
-
 </body>
 </html>
