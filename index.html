@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>4 Player Tag Game</title>
+  <title>3 Player Tag Game</title>
   <style>
     body { margin: 0; background: #222; }
     canvas { background: #87ceeb; display: block; margin: auto; }
   </style>
 </head>
 <body>
-<canvas id="game" width="1200" height="700"></canvas>
+<canvas id="game" width="1600" height="900"></canvas>
 
 <script>
 const canvas = document.getElementById('game');
@@ -41,6 +41,7 @@ class Player {
     this.canDoubleJump = true;
     this.isOnGround = false;
     this.isIt = false;
+    this.stunned = 0;
     this.keys = keys;
     this.abilityName = abilityName;
     this.abilityCooldown = 0;
@@ -50,11 +51,12 @@ class Player {
     this.speedBoost = false;
   }
 
-  moveLeft() { this.vx = -this.speed * (this.speedBoost ? 1.5 : 1); }
-  moveRight() { this.vx = this.speed * (this.speedBoost ? 1.5 : 1); }
-  stopX() { this.vx = 0; }
+  moveLeft() { if (!this.stunned) this.vx = -this.speed * (this.speedBoost ? 1.5 : 1); }
+  moveRight() { if (!this.stunned) this.vx = this.speed * (this.speedBoost ? 1.5 : 1); }
+  stopX() { if (!this.stunned) this.vx = 0; }
 
   jump() {
+    if (this.stunned) return;
     if (this.isOnGround) {
       this.vy = -this.jumpPower;
       this.canDoubleJump = true;
@@ -66,10 +68,10 @@ class Player {
   }
 
   useAbility() {
-    if (this.abilityCooldown > 0) return;
+    if (this.stunned || this.abilityCooldown > 0) return;
     switch (this.abilityName) {
       case 'dash':
-        this.vx = (this.vx >= 0 ? 1 : -1) * 30; // Red gets BIG dash
+        this.vx = (this.vx >= 0 ? 1 : -1) * 60; // 💥 Double dash
         this.abilityCooldown = 120;
         break;
       case 'shield':
@@ -84,17 +86,12 @@ class Player {
         this.abilityDuration = 180;
         this.abilityCooldown = 300;
         break;
-      case 'teleport':
-        if (this.isOnGround) {
-          const dist = (Math.random() < 0.5 ? -1 : 1) * 200;
-          this.x = Math.max(0, Math.min(this.x + dist, canvas.width - this.width));
-          this.abilityCooldown = 180;
-        }
-        break;
     }
   }
 
   update(platforms) {
+    if (this.stunned > 0) this.stunned--;
+
     this.x += this.vx;
     this.y += this.vy;
 
@@ -151,7 +148,7 @@ class Player {
       ctx.strokeStyle = 'cyan';
       ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.arc(this.x + this.width/2, this.y + this.height/2, this.width, 0, Math.PI * 2);
+      ctx.arc(this.x + this.width / 2, this.y + this.height / 2, this.width, 0, Math.PI * 2);
       ctx.stroke();
     }
   }
@@ -161,17 +158,19 @@ const players = [
   new Player('red', 100, { left: 'a', right: 'd', jump: 'w', ability: 's' }, 'dash'),
   new Player('green', 300, { left: 'j', right: 'l', jump: 'i', ability: 'k' }, 'shield'),
   new Player('blue', 500, { left: 'ArrowLeft', right: 'ArrowRight', jump: 'ArrowUp', ability: 'ArrowDown' }, 'speed'),
-  new Player('yellow', 700, { left: 'Numpad4', right: 'Numpad6', jump: 'Numpad8', ability: 'Numpad5' }, 'teleport')
 ];
 
 players[0].isIt = true;
 
 const platforms = [
   new Platform(0, canvas.height - 30, canvas.width, 30),
-  new Platform(200, 550, 200, 20),
-  new Platform(500, 400, 200, 20),
-  new Platform(100, 300, 150, 20),
-  new Platform(800, 250, 200, 20),
+  new Platform(200, 750, 300, 20),
+  new Platform(600, 650, 250, 20),
+  new Platform(1000, 550, 250, 20),
+  new Platform(400, 400, 200, 20),
+  new Platform(900, 300, 200, 20),
+  new Platform(300, 200, 150, 20),
+  new Platform(1100, 150, 150, 20),
 ];
 
 const keysDown = {};
@@ -180,6 +179,7 @@ window.addEventListener('keyup', e => keysDown[e.key] = false);
 
 function handleInput() {
   players.forEach(p => {
+    if (p.stunned > 0) return;
     if (keysDown[p.keys.left]) p.moveLeft();
     else if (keysDown[p.keys.right]) p.moveRight();
     else p.stopX();
@@ -195,12 +195,13 @@ function handleInput() {
 function checkTag() {
   const itPlayer = players.find(p => p.isIt);
   players.forEach(p => {
-    if (p !== itPlayer && !p.shield &&
+    if (p !== itPlayer && p.stunned === 0 && !p.shield &&
         !(p.x + p.width < itPlayer.x ||
           p.x > itPlayer.x + itPlayer.width ||
           p.y + p.height < itPlayer.y ||
           p.y > itPlayer.y + itPlayer.height)) {
       p.isIt = true;
+      p.stunned = 180; // ⏱ 3 seconds stun (60fps * 3)
       itPlayer.isIt = false;
     }
   });
@@ -233,3 +234,4 @@ loop();
 </script>
 </body>
 </html>
+``
