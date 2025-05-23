@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>3 Player Tag Game - Zoom Slightly In, Longer Dash</title>
+  <title>Tag Game - 2 or 3 Players, Zoom 0.5</title>
   <style>
     body { margin: 0; background: #222; display: flex; justify-content: center; align-items: center; height: 100vh; }
     canvas { background: #87ceeb; }
@@ -15,7 +15,7 @@
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-const SCALE = 0.6; // zoom in a bit from 0.5
+const SCALE = 0.5; // Zoom level back to 50%
 const WORLD_WIDTH = 1600;
 const WORLD_HEIGHT = 900;
 
@@ -76,8 +76,7 @@ class Player {
     if (this.stunned || this.abilityCooldown > 0) return;
     switch (this.abilityName) {
       case 'dash':
-        // doubled dash velocity from 60 to 120 for red
-        this.vx = (this.vx >= 0 ? 1 : -1) * 120;
+        this.vx = (this.vx >= 0 ? 1 : -1) * 60;
         this.abilityCooldown = 120;
         break;
       case 'shield':
@@ -161,11 +160,18 @@ class Player {
   }
 }
 
+const TWO_PLAYER_MODE = true; // toggle here: true = 2 players, false = 3 players
+
 const players = [
   new Player('red', 100, { left: 'a', right: 'd', jump: 'w', ability: 's' }, 'dash'),
   new Player('green', 300, { left: 'j', right: 'l', jump: 'i', ability: 'k' }, 'shield'),
-  new Player('blue', 500, { left: 'ArrowLeft', right: 'ArrowRight', jump: 'ArrowUp', ability: 'ArrowDown' }, 'speed'),
 ];
+
+if (!TWO_PLAYER_MODE) {
+  players.push(
+    new Player('blue', 500, { left: 'ArrowLeft', right: 'ArrowRight', jump: 'ArrowUp', ability: 'ArrowDown' }, 'speed')
+  );
+}
 
 players[0].isIt = true;
 
@@ -251,8 +257,3 @@ loop();
 </body>
 </html>
 
-
-loop();
-</script>
-</body>
-</html>
