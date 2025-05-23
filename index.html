@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>3 Player Tag Game - Zoomed Out, Tag Cooldown</title>
+  <title>3 Player Tag Game - Zoom Slightly In, Longer Dash</title>
   <style>
     body { margin: 0; background: #222; display: flex; justify-content: center; align-items: center; height: 100vh; }
     canvas { background: #87ceeb; }
@@ -15,7 +15,7 @@
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-const SCALE = 0.5; // zoom out factor (50%)
+const SCALE = 0.6; // zoom in a bit from 0.5
 const WORLD_WIDTH = 1600;
 const WORLD_HEIGHT = 900;
 
@@ -45,8 +45,8 @@ class Player {
     this.canDoubleJump = true;
     this.isOnGround = false;
     this.isIt = false;
-    this.stunned = 0; // no longer used for freeze after tag but left for compatibility
-    this.tagCooldown = 0; // NEW cooldown for tagging after being tagged
+    this.stunned = 0;
+    this.tagCooldown = 0;
     this.keys = keys;
     this.abilityName = abilityName;
     this.abilityCooldown = 0;
@@ -76,7 +76,8 @@ class Player {
     if (this.stunned || this.abilityCooldown > 0) return;
     switch (this.abilityName) {
       case 'dash':
-        this.vx = (this.vx >= 0 ? 1 : -1) * 60; // Double dash
+        // doubled dash velocity from 60 to 120 for red
+        this.vx = (this.vx >= 0 ? 1 : -1) * 120;
         this.abilityCooldown = 120;
         break;
       case 'shield':
@@ -250,8 +251,8 @@ loop();
 </body>
 </html>
 
+
 loop();
 </script>
 </body>
 </html>
-``
