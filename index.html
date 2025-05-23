@@ -2,20 +2,51 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Tag Game - 2 or 3 Players, Zoom 0.5</title>
+  <title>Tag Game - Dynamic 2/3 Players & Double Dash</title>
   <style>
-    body { margin: 0; background: #222; display: flex; justify-content: center; align-items: center; height: 100vh; }
-    canvas { background: #87ceeb; }
+    body {
+      margin: 0;
+      background: #222;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      color: white;
+      font-family: monospace;
+      user-select: none;
+    }
+    canvas {
+      background: #87ceeb;
+      display: block;
+      margin-bottom: 10px;
+      border: 2px solid #555;
+    }
+    button {
+      padding: 8px 16px;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 6px;
+      border: none;
+      background: #444;
+      color: white;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #666;
+    }
   </style>
 </head>
 <body>
+
 <canvas id="game" width="800" height="450"></canvas>
+<button id="togglePlayersBtn">Switch to 3 Players</button>
 
 <script>
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-const SCALE = 0.5; // Zoom level back to 50%
+const SCALE = 0.5;
 const WORLD_WIDTH = 1600;
 const WORLD_HEIGHT = 900;
 
@@ -76,7 +107,8 @@ class Player {
     if (this.stunned || this.abilityCooldown > 0) return;
     switch (this.abilityName) {
       case 'dash':
-        this.vx = (this.vx >= 0 ? 1 : -1) * 60;
+        // Double dash distance from 60 to 120 for red player
+        this.vx = (this.vx >= 0 ? 1 : -1) * 120;
         this.abilityCooldown = 120;
         break;
       case 'shield':
@@ -160,21 +192,6 @@ class Player {
   }
 }
 
-const TWO_PLAYER_MODE = true; // toggle here: true = 2 players, false = 3 players
-
-const players = [
-  new Player('red', 100, { left: 'a', right: 'd', jump: 'w', ability: 's' }, 'dash'),
-  new Player('green', 300, { left: 'j', right: 'l', jump: 'i', ability: 'k' }, 'shield'),
-];
-
-if (!TWO_PLAYER_MODE) {
-  players.push(
-    new Player('blue', 500, { left: 'ArrowLeft', right: 'ArrowRight', jump: 'ArrowUp', ability: 'ArrowDown' }, 'speed')
-  );
-}
-
-players[0].isIt = true;
-
 const platforms = [
   new Platform(0, WORLD_HEIGHT - 30, WORLD_WIDTH, 30),
   new Platform(200, 750, 300, 20),
@@ -186,9 +203,25 @@ const platforms = [
   new Platform(1100, 150, 150, 20),
 ];
 
+let TWO_PLAYER_MODE = true;
+let players = [];
+
 const keysDown = {};
 window.addEventListener('keydown', e => keysDown[e.key] = true);
 window.addEventListener('keyup', e => keysDown[e.key] = false);
+
+function createPlayers() {
+  players = [
+    new Player('red', 100, { left: 'a', right: 'd', jump: 'w', ability: 's' }, 'dash'),
+    new Player('green', 300, { left: 'j', right: 'l', jump: 'i', ability: 'k' }, 'shield'),
+  ];
+  if (!TWO_PLAYER_MODE) {
+    players.push(
+      new Player('blue', 500, { left: 'ArrowLeft', right: 'ArrowRight', jump: 'ArrowUp', ability: 'ArrowDown' }, 'speed')
+    );
+  }
+  players[0].isIt = true;
+}
 
 function handleInput() {
   players.forEach(p => {
@@ -219,7 +252,7 @@ function checkTag() {
     ) {
       p.isIt = true;
       itPlayer.isIt = false;
-      p.tagCooldown = 180; // 3 seconds cooldown before new "It" can tag
+      p.tagCooldown = 180;
     }
   });
 }
@@ -251,6 +284,22 @@ function loop() {
   draw();
   requestAnimationFrame(loop);
 }
+
+// Button for toggling 2 or 3 players
+const toggleBtn = document.getElementById('togglePlayersBtn');
+toggleBtn.addEventListener('click', () => {
+  TWO_PLAYER_MODE = !TWO_PLAYER_MODE;
+  createPlayers();
+  toggleBtn.textContent = TWO_PLAYER_MODE ? 'Switch to 3 Players' : 'Switch to 2 Players';
+});
+
+createPlayers();
+loop();
+</script>
+
+</body>
+</html>
+
 
 loop();
 </script>
